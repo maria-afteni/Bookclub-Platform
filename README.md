@@ -167,12 +167,13 @@ The use of distributed systems in this case is relevant because:
     }   
 ```
 
-- ```POST /discussions/{thread_id}/reply``` - post a reply to a specific discussion thread.
+- ```domain.com/discussions/{thread_id}``` - connect to websocket to post a reply to a specific discussion thread.
 
 **Request:**
 ```
     {
         "author": "User456",
+        "thread_id": 1,
         "content": "Reply content"
     }
 ```
@@ -182,10 +183,11 @@ The use of distributed systems in this case is relevant because:
     {
         "message": "Reply submitted successfully",
         "reply_id": 3
+        "thread_id": 1
     }   
 ``` 
 
 ### Deployment and Scaling
 
-To deploy the book club platform I will be using Docker, which will help me containerize each microservice and will ensure isolated execution. The deployment and scaling will be managed by Kubernetes. It will handle the load balancer, service discovery and the horizintal scaling, based on the load. The cache, created with Redis, will optimize performance by caching frequently accessed data.
+To deploy the book club platform I will be using Docker, which will help me containerize each microservice and will ensure isolated execution. The deployment and scaling will be managed by Docker Compose. It will handle the load balancer, service discovery and the horizintal scaling, based on the load. The cache, created with Redis, will optimize performance by caching frequently accessed data.
 
