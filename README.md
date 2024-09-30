@@ -26,7 +26,7 @@ The use of distributed systems in this case is relevant because:
 
 ### Service Boundaries
 
-1. The `Voting Service` handles the process of choosing the book of the month by allowing the users to vote on available book options. It manages the vote submissions, tracks the results, and provides real-time updates regarding the voting procces.
+1. The `Voting Service` handles the process of choosing the book of the month by allowing the users to vote on available book options. It manages the vote submissions, tracks the results, and provides real-time updates regarding the voting process.
 2. The `Discussion Forum Service` enables users to participate in real-time conversations about the selected book by using websockets to facilitate live messaging.
 
 ![alt text](img/architectural_diagram.png)
@@ -148,7 +148,7 @@ The use of distributed systems in this case is relevant because:
     }
 ```
 
-- ```POST /discussion``` - create a new discussion thread.
+- ```POST /discussions``` - create a new discussion thread.
 
 **Request:**
 ```
