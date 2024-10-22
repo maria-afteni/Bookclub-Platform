@@ -14,7 +14,74 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again after 15 minutes'
 });
 
+const redis = require('redis');
+
+const redisClient = redis.createClient({
+    url: `redis://${"localhost"}:${6379}`
+});
+
+redisClient.connect().catch(err => {
+    console.error('Redis connection error:', err);
+});
+
 app.use(limiter);
+
+app.get('/status', async (req, res) => {
+    try {
+        const votingStatus = await axios.get(`${VOTING_SERVICE_URL}/status`);
+        const discussionStatus = await axios.get(`${DISCUSSION_SERVICE_URL}/status`);
+
+        res.status(200).json({
+            voting_service: {
+                status: votingStatus.data.status,
+                timestamp: votingStatus.data.timestamp
+            },
+            discussion_service: {
+                status: discussionStatus.data.status,
+                timestamp: discussionStatus.data.timestamp
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching service status:', error);
+        res.status(500).json({ message: 'Error fetching service status' });
+    }
+});
+
+app.post('/register', async (req, res) => {
+    const { name, address, port } = req.body;
+    
+    if (!name || !address || !port) {
+        return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const serviceKey = name;
+
+    try {
+        const serviceInfo = `${address}:${port}`;
+        await redisClient.lPush(serviceKey, serviceInfo);
+        console.log(`Registered service: ${serviceKey} at ${serviceInfo}`);
+        return res.status(200).json({ success: true, message: 'Service registered successfully' });
+    } catch (error) {
+        console.error('Failed to register service:', error);
+        return res.status(500).json({ success: false, message: 'Failed to register service' });
+    }
+});
+
+app.get('/services/:name', async (req, res) => {
+    const serviceKey = req.params.name;
+
+    try {
+        const services = await redisClient.lRange(serviceKey, 0, -1); // Get all instances of the service
+        if (services.length > 0) {
+            res.status(200).json({ services });
+        } else {
+            res.status(404).json({ message: 'No services found' });
+        }
+    } catch (error) {
+        console.error('Failed to retrieve services:', error);
+        res.status(500).json({ error: 'Failed to retrieve services' });
+    }
+});
 
 app.get('/books', async (req, res) => {
     try {

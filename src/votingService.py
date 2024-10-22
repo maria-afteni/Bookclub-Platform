@@ -14,6 +14,24 @@ db = SQLAlchemy(app)
 app.config['REDIS_URL'] = "redis://localhost:6379/0"
 redis_client = FlaskRedis(app)
 
+SERVICE_NAME = "voting_service"
+GATEWAY_URL = "http://localhost:3000/register" 
+SERVICE_PORT = 5002
+
+def register_service():
+    try:
+        response = requests.post(GATEWAY_URL, json={
+            "name": SERVICE_NAME,
+            "address": "localhost",
+            "port": SERVICE_PORT
+        })
+        if response.status_code == 200:
+            print(f"{SERVICE_NAME} registered successfully.")
+        else:
+            print(f"Failed to register {SERVICE_NAME}: {response.text}")
+    except Exception as e:
+        print(f"Error during registration: {e}")
+
 class Book(db.Model):
     __tablename__ = 'books'
     id = db.Column(db.Integer, primary_key=True)
@@ -30,6 +48,7 @@ class Book(db.Model):
             "description": self.description,
             "votes": self.votes
         }
+
 def cache_vote_count(book_id, vote_count):
     try:
         redis_client.set(f"book:{book_id}:votes", vote_count, ex=3600) # 1-hour timeout for cache
@@ -134,7 +153,7 @@ def end_voting():
     }
 
     try:
-        response = requests.post(discussion_service_url, json=payload, timeout=5)
+        response = requests.post(discussion_service_url, json=payload)
         response.raise_for_status()  
     except requests.exceptions.RequestException as e:
         return jsonify({"error": "Failed to create discussion thread", "details": str(e)}), 500
