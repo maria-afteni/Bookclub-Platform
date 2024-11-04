@@ -18,7 +18,7 @@ SERVICE_PORT = 5001
 def register_service():
     try:
         response = requests.post(GATEWAY_URL, json={
-            "name": SERVICE_NAME,
+            "name": SERVICE_NAME,   
             "address": "localhost",
             "port": SERVICE_PORT
         })

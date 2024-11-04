@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from flask import json
-from forumService import app 
+from forumService.forumService import app 
 
 class ForumServiceTestCase(unittest.TestCase):
     def setUp(self):

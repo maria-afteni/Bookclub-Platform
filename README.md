@@ -2,6 +2,56 @@
 
 A platform that allows users to vote for a book that they will all read next month and discuss it in a specially created lobby. The MVP will consist of two microservices: one for a voting system to select the book of the month and another for real-time discussions. The voting service allows users to cast and view votes, while the discussion service creates a space for users to talk about the book.
 
+### Setup and Deployment
+To properly run the project, you have to:
+
+1. Clone the repository:  
+    `git clone https://github.com/maria-afteni/Bookclub-Platform `
+
+2. Create an `.env` file for the environment variables used in docker-compose.yml. The file should have the following structure:
+    ```
+        GATEWAY_PORT=3000
+
+        VOTING_SERVICE_PORT=5000
+        VOTING_DB_HOST=localhost
+        VOTING_DB_PORT=5432
+        VOTING_DB_NAME=voting_db
+        VOTING_DB_USER=your_postgre_user
+        VOTING_DB_PASSWORD=your_postgre_password
+
+        FORUM_SERVICE_PORT=5001
+        FORUM_DB_HOST=localhost
+        FORUM_DB_PORT=27017
+        FORUM_DB_NAME=forum_db
+
+        REDIS_HOST=localhost
+        REDIS_PORT=6379
+    ```
+
+3. Run Docker Compose to build all the services.  
+    `docker-compose up --build`
+
+4. Access the services using their ports. Note that all the requests should be done through the gateway.  
+    ```
+        Gateway: http://localhost:3000
+        Voting Service: http://localhost:5000
+        Discussion Service: http://localhost:5001
+    ```
+
+It is preferable to start using the services by running the `/register` endpoint to make them visible to the gateway. Once registered, requests to the services can be made through the gateway.
+
+Example of `/register` endpoint:
+```
+{
+    "name": "forum_service",
+    "address": "localhost",
+    "port": 5005
+}
+```
+
+To stop all runing containers, execute `docker-compose down`
+
+
 ### Application Suitability
 
 The use of distributed systems in this case is relevant because:
@@ -29,7 +79,7 @@ The use of distributed systems in this case is relevant because:
 1. The `Voting Service` handles the process of choosing the book of the month by allowing the users to vote on available book options. It manages the vote submissions, tracks the results, and provides real-time updates regarding the voting procces.
 2. The `Discussion Forum Service` enables users to participate in real-time conversations about the selected book by using websockets to facilitate live messaging.
 
-![alt text](img/architectural_diagram.png)
+![alt text](img/architectural_diagram_updated.png)
 
 ### Technology Stack
 
@@ -49,85 +99,98 @@ The use of distributed systems in this case is relevant because:
 
 
 ### Data Management Design
-#### Endpoints:
-- ```GET /status``` - a common endpoint for both of the microservices to check if the services are running.
+#### Updated Endpoints:
+**Voting Service Endpoints:**  
+**Base URL:** `http://127.0.0.1:5000` 
 
-**Response:**
-```
+- **GET `/status`**  
+  **Description:** Returns the status of the Voting Service.  
+  **Response:**  
+  ```
     {
         "service": "voting_service",
         "status": "running",
-        "timestamp": "2024-09-06T15:00:00Z"
+        "timestamp": "2024-11-04T12:00:00Z"
     }
-```
+  ```
 
-**Voting Service Endpoints:**
-- ```GET /books``` - retrive the list of books for voting.
-
-**Response:**
-```
+- **GET `/books`**  
+  **Description:** Retrieves the list of books available for voting.  
+  **Response:**
+  ```
+  [
     {
-        "books": [
-          {
-            "id": 1,
-            "title": "Title 1",
-            "author": "Author 1",
-            "description": "Brief description of the book",
-            "votes": 120
-          },
-          {
-            "id": 2,
-            "title": "Title 2",
-            "author": "Author 2",
-            "description": "Brief description of the book",
-            "votes": 85
-          }
-        ]
-    }
-```
+        "id": 1,
+        "title": "Book Title",
+        "author": "Author Name",
+        "votes": 5
+    },
+  ...
+  ]
+  ```
 
-- ```POST /vote``` - submit a vote for a specific book.
-
-**Request:**
-```
-    {
-        "book_id": 1,
-        "user_id": 123
-    }
-```
-**Response:**
-```
+- **POST `/vote`**  
+  **Description:** Casts a vote for a book.  
+  **Body:**  
+  ```
+  {
+    "book_id": 1,
+    "user_id": 123
+  }
+  ```
+  **Response:**
+  ```
     {
         "message": "Vote submitted successfully",
-        "votes": 121
+        "votes": 11   
     }
-```
+  ```
 
-- ``` GET /vote/status``` - get the number of votes for each book.
-
-**Response:**
-```
+- **GET `/vote/status`**   
+  **Description:** Retrieves the current voting status, showing the vote counts.  
+  **Response:**  
+  ```
     {
         "status": [
-        {
+            {
             "book_id": 1,
-            "title": "Title 1",
-            "votes": 121
-        },
-        {
-            "book_id": 2,
-            "title": "Title 2",
-            "votes": 85
-        }
+            "title": "Book Title",
+            "votes": 10
+            },
+            // more books...
+        ],
+        "cache_messages": [
+            "Cache hit: book 1.",
+            "Cache miss: book 2."
         ]
     }
-```
+  ```
+
+- **POST `/vote/end`**  
+  **Description:** Ends the voting session and creates a discussion thread for the book with most votes casted.   
+  **Response:**  
+  ```
+    {
+        "message": "Voting ended and discussion thread created"
+    }
+  ```
 
 **Discussion Forum Service Endpoints:**
-- ```GET /discussions``` - get a list of discussions for the book of the month.
+- **GET `/status`**  
+  **Description:** Returns the status of the service.  
+  **Response:**  
+  ```
+    {
+        "service": "forum_service",
+        "status": "running",
+        "timestamp": "2024-11-04T12:00:00Z"
+    }
+  ```
 
-**Response:**
-```
+- **GET `/discussions`**  
+  **Description:** Get a list of discussions for the book of the month.  
+  **Response:**
+  ```
     {
        "discussions": [
         {
@@ -146,46 +209,74 @@ The use of distributed systems in this case is relevant because:
         }
         ]
     }
-```
+  ```
 
-- ```POST /discussion``` - create a new discussion thread.
-
-**Request:**
-```
+- **POST `/discussions`**  
+  **Description:** Create a new discussion thread.  
+  **Request:**
+  ```
     {
-        "title": "New Discussion Title",
-        "author": "User123",
-        "content": "Content of the discussion"
-    }
-```
-
-**Response:**
-```
+        "title": "Discussion for Book Title",
+        "author": "Admin",
+        "content": "This is the discussion thread for Book Title by Author Name"
+    }  
+  ```  
+  **Response:**
+  ```
     {
         "message": "Discussion thread created successfully",
         "thread_id": 3
     }   
-```
+   ```
 
 - ```domain.com/discussions/{thread_id}``` - connect to websocket to post a reply to a specific discussion thread.
-
 **Request:**
-```
+  ```
     {
         "author": "User456",
         "thread_id": 1,
         "content": "Reply content"
     }
-```
-
-**Response:**
-```
+  ```  
+  **Response:**
+  ```
     {
         "message": "Reply submitted successfully",
         "reply_id": 3
         "thread_id": 1
     }   
-``` 
+  ``` 
+
+**Gateway Endpoints:**  
+- **POST `/register`**  
+  **Description:** Registers a new service with the gateway.  
+  **Request:**  
+  ```
+    {
+        "name": "service_name",
+        "address": "localhost",
+        "port": 5000
+    }
+  ```
+  **Response:**  
+  ```
+  {
+    "success": true,
+    "message": "Service registered successfully"
+  }
+  ```
+
+- **GET `/services/{service_name}`**  
+  **Description:** Fetches a list of all instances of a specific service.  
+  **Response:**  
+  ```
+    {
+        "services": [
+        "localhost:5000",
+        "localhost:5001"
+        ]
+    }  
+  ``` 
 
 ### Deployment and Scaling
 

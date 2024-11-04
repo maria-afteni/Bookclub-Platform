@@ -120,10 +120,13 @@ app.all('/proxy/:serviceName/:path(*)', async (req, res) => {
     }
 });
 
+const REQUEST_TIMEOUT = 10000; 
+
+
 app.get('/status', async (req, res) => {
     try {
-        const votingStatus = await axios.get(`${VOTING_SERVICE_URL}/status`);
-        const discussionStatus = await axios.get(`${DISCUSSION_SERVICE_URL}/status`);
+        const votingStatus = await axios.get(`${VOTING_SERVICE_URL}/status`, { timeout: REQUEST_TIMEOUT });
+        const discussionStatus = await axios.get(`${DISCUSSION_SERVICE_URL}/status`, { timeout: REQUEST_TIMEOUT });
 
         res.status(200).json({
             voting_service: {
@@ -137,7 +140,11 @@ app.get('/status', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching service status:', error);
-        res.status(500).json({ message: 'Error fetching service status' });
+        if (error.code === 'ECONNABORTED') {
+            res.status(504).json({ message: 'Request timed out', error: 'Timeout error' });
+        } else {
+            res.status(500).json({ message: 'Error fetching service status' });
+        }
     }
 });
 
